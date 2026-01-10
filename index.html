@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>로또 번호 생성기 (6+보너스, 이력, 테마)</title>
+  <title>로또 번호 생성기 (5개, 이력, 테마)</title>
   <style>
     :root {
       --bg: #0b1220;
@@ -169,14 +169,7 @@
     }
     [data-theme="light"] .ball { background: rgba(0,0,0,0.06); }
 
-    .ball.bonus {
-      border-color: rgba(255,255,255,0.28);
-      background: linear-gradient(180deg, rgba(253,187,45,0.30), rgba(253,187,45,0.12));
-    }
-    [data-theme="light"] .ball.bonus {
-      border-color: rgba(0,0,0,0.18);
-      background: linear-gradient(180deg, rgba(253,187,45,0.35), rgba(253,187,45,0.18));
-    }
+
 
     .label-row {
       display: flex;
@@ -275,7 +268,7 @@
     <header>
       <div>
         <h1>로또 번호 생성기</h1>
-        <p class="sub">버튼을 누르면 1~45 사이의 <strong>6개 번호 + 보너스 1개</strong>를 중복 없이 생성하고, 최근 10회 이력을 저장합니다.</p>
+        <p class="sub">버튼을 누르면 1~45 사이의 <strong>5개 번호</strong>를 중복 없이 생성하고, 최근 10회 이력을 저장합니다.</p>
       </div>
       <div class="top-actions">
         <button id="themeToggle" type="button" class="btn-ghost" aria-label="테마 토글">테마: 다크</button>
@@ -287,7 +280,7 @@
       <!-- 결과 패널 -->
       <section class="panel" aria-label="생성 결과">
         <div class="row">
-          <button id="generateBtn" type="button" style="flex: 1; min-width: 220px;">번호 생성 (6+보너스)</button>
+          <button id="generateBtn" type="button" style="flex: 1; min-width: 220px;">번호 생성 (5개)</button>
           <div class="meta" id="metaText">아직 생성 전</div>
         </div>
 
@@ -296,8 +289,7 @@
         </div>
 
         <div class="label-row">
-          <span class="chip">일반 6개</span>
-          <span class="chip">보너스 1개</span>
+          <span class="chip">5개 번호</span>
         </div>
 
         <div class="toast" id="toast" aria-live="polite"></div>
@@ -354,7 +346,7 @@
       return d.toLocaleString("ko-KR");
     }
 
-    function getUniqueNumbers(min = 1, max = 45, count = 7) {
+    function getUniqueNumbers(min = 1, max = 45, count = 5) {
       const set = new Set();
       while (set.size < count) {
         const n = Math.floor(Math.random() * (max - min + 1)) + min;
@@ -364,13 +356,11 @@
     }
 
     function generateLotto() {
-      // 총 7개를 뽑고, 앞 6개 = 일반, 마지막 1개 = 보너스(중복 없음)
-      const nums = getUniqueNumbers(1, 45, 7);
-      const main = nums.slice(0, 6);
-      const bonus = nums[6];
+      // 5개 번호 생성 (중복 없음)
+      const numbers = getUniqueNumbers(1, 45, 5);
 
       const at = new Date();
-      latestResult = { main, bonus, at: at.toISOString() };
+      latestResult = { numbers, at: at.toISOString() };
 
       // 이력 업데이트(최신이 상단)
       history.unshift(latestResult);
@@ -384,33 +374,26 @@
     function renderResult(result) {
       numbersArea.innerHTML = "";
 
-      for (const n of result.main) {
+      for (const n of result.numbers) {
         const ball = document.createElement("div");
         ball.className = "ball";
         ball.textContent = n;
         numbersArea.appendChild(ball);
       }
 
-      const bonusBall = document.createElement("div");
-      bonusBall.className = "ball bonus";
-      bonusBall.title = "보너스 번호";
-      bonusBall.textContent = result.bonus;
-      numbersArea.appendChild(bonusBall);
-
       const when = new Date(result.at);
       metaText.textContent = `생성 시각: ${nowKoreanString(when)}`;
 
-      const announce = `생성된 번호: ${result.main.join(", ")} / 보너스: ${result.bonus}`;
+      const announce = `생성된 번호: ${result.numbers.join(", ")}`;
       announceEl.textContent = announce;
     }
 
     function formatLine(item) {
       const when = new Date(item.at);
-      // 예: 2026. 1. 10. 오후 3:12:10 - 03, 11, 19, 25, 34, 41 + [07]
+      // 예: 2026. 1. 10. 오후 3:12:10 - 03, 11, 19, 25, 34
       const pad2 = (n) => String(n).padStart(2, "0");
-      const main = item.main.map(pad2).join(", ");
-      const bonus = pad2(item.bonus);
-      return `${nowKoreanString(when)} - ${main} + [${bonus}]`;
+      const numbers = item.numbers.map(pad2).join(", ");
+      return `${nowKoreanString(when)} - ${numbers}`;
     }
 
     function renderHistory(list) {
@@ -428,11 +411,10 @@
         const when = new Date(item.at);
 
         const pad2 = (n) => String(n).padStart(2, "0");
-        const main = item.main.map(pad2).join(", ");
-        const bonus = pad2(item.bonus);
+        const numbers = item.numbers.map(pad2).join(", ");
 
         li.innerHTML = `
-          <span class="nums">${main} <span style="opacity:.75;">+ [${bonus}]</span></span>
+          <span class="nums">${numbers}</span>
           <span class="time">${nowKoreanString(when)}</span>
         `;
         historyList.appendChild(li);
@@ -455,7 +437,7 @@
         // 최소한의 형태 검증
         if (!Array.isArray(parsed)) return [];
         return parsed
-          .filter(x => x && Array.isArray(x.main) && typeof x.bonus === "number" && typeof x.at === "string")
+          .filter(x => x && Array.isArray(x.numbers) && typeof x.at === "string")
           .slice(0, 10);
       } catch {
         return [];
